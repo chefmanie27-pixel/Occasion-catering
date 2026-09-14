@@ -28,8 +28,14 @@ function pfEncode(value) {
 }
 
 function buildSignature(fields, passphrase) {
+  // NOTE: empty-string values are intentionally kept here. PayFast's own
+  // reference implementation includes every field except `signature` in
+  // the param string, blank or not (e.g. unused custom_str2..5 /
+  // custom_int1..5 fields on an ITN payload still contribute `key=` to
+  // the string). Filtering out empty values here would make our computed
+  // signature diverge from what PayFast computed on their end.
   let pairs = Object.entries(fields)
-    .filter(([key, value]) => key !== 'signature' && value !== undefined && value !== null && value !== '')
+    .filter(([key, value]) => key !== 'signature' && value !== undefined && value !== null)
     .map(([key, value]) => `${key}=${pfEncode(value)}`);
 
   if (passphrase) {
@@ -95,7 +101,7 @@ function verifyItnSignature(payload) {
   // TEMP DEBUG — remove once signature matching is confirmed working
   if (expected !== payload.signature) {
     const pairs = Object.entries(payload)
-      .filter(([key, value]) => key !== 'signature' && value !== undefined && value !== null && value !== '')
+      .filter(([key, value]) => key !== 'signature' && value !== undefined && value !== null)
       .map(([key, value]) => `${key}=${pfEncode(value)}`);
     if (passphrase) pairs.push(`passphrase=${pfEncode(passphrase)}`);
     console.log('DEBUG signature paramString:', pairs.join('&'));
