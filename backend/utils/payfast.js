@@ -91,6 +91,18 @@ function verifyItnSignature(payload) {
   if (!payload || !payload.signature) return false;
   const passphrase = process.env.PAYFAST_PASSPHRASE || '';
   const expected = buildSignature(payload, passphrase);
+
+  // TEMP DEBUG — remove once signature matching is confirmed working
+  if (expected !== payload.signature) {
+    const pairs = Object.entries(payload)
+      .filter(([key, value]) => key !== 'signature' && value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => `${key}=${pfEncode(value)}`);
+    if (passphrase) pairs.push(`passphrase=${pfEncode(passphrase)}`);
+    console.log('DEBUG signature paramString:', pairs.join('&'));
+    console.log('DEBUG expected:', expected, 'received:', payload.signature);
+    console.log('DEBUG passphrase length:', passphrase.length, JSON.stringify(passphrase));
+  }
+
   return expected === payload.signature;
 }
 
