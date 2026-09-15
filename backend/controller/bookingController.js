@@ -301,11 +301,13 @@ exports.updateBookingStatus = async (req, res) => {
       if (!customer || booking.customer_id !== customer.customer_id) {
         return res.status(403).json({ success: false, error: 'Access denied' });
       }
-      // Customers may only cancel their own booking, and only before it's
-      // been paid — everything else (marking paid/completed) is server- or
-      // admin-driven.
-      if (status !== 'cancelled' || booking.status !== 'pending_payment') {
-        return res.status(403).json({ success: false, error: 'You can only cancel a booking pending payment' });
+      // Customers may only cancel their own booking, and only while it's
+      // still upcoming (pending payment or confirmed) — everything else
+      // (marking paid/completed, or touching a booking that's already
+      // completed/cancelled) is server- or admin-driven.
+      const cancellableStatuses = ['pending_payment', 'confirmed'];
+      if (status !== 'cancelled' || !cancellableStatuses.includes(booking.status)) {
+        return res.status(403).json({ success: false, error: 'You can only cancel an upcoming booking' });
       }
     }
 
