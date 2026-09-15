@@ -40,7 +40,7 @@ const stats = [
         <p class="hero__subtitle">
           Occasion is a South African catering company passionate about bringing people
           together through exceptional food, warm hospitality, and unforgettable
-          experiences.
+          experiences. We are fully halaal, sourcing from halaal vendors.
         </p>
         <a href="#story" class="btn btn--primary">Our Story →</a>
       </div>

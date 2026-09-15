@@ -13,7 +13,7 @@ const heroSlides = [
     alt: 'Candlelit outdoor dining table set among vineyards',
     eyebrow: '✦ ✦',
     title: 'Plan Your Occasion in Minutes',
-    subtitle: 'Browse curated catering packages for every event',
+    subtitle: 'Fully halaal catering, from halaal vendors, for every event',
     ctaTo: '/large-events',
     ctaLabel: 'Browse Now →',
   },
