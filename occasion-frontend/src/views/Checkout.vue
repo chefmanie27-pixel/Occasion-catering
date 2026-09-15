@@ -36,7 +36,33 @@ const contactPhone = ref('')
 const error = ref('')
 const isSubmitting = ref(false)
 
-const today = new Date().toISOString().split('T')[0]
+// Formats a Date as a local YYYY-MM-DD string (not toISOString, which
+// shifts by the browser's UTC offset and can land on the wrong day).
+function toDateInputValue(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+// Bookings can't be made for any date in the current week — the earliest
+// selectable date is always the Monday of *next* week, regardless of what
+// day today is. This gives the kitchen/staffing team a guaranteed minimum
+// lead time instead of same-week or next-day bookings slipping through.
+const now = new Date()
+const dayOfWeek = now.getDay() // Sun=0 .. Sat=6
+const daysSinceMonday = (dayOfWeek + 6) % 7 // Mon=0 .. Sun=6
+const currentWeekMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday)
+const nextWeekMonday = new Date(currentWeekMonday)
+nextWeekMonday.setDate(currentWeekMonday.getDate() + 7)
+
+const minBookableDate = toDateInputValue(nextWeekMonday)
+const minBookableDateLabel = nextWeekMonday.toLocaleDateString('en-ZA', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+})
 
 // Each cart item keeps its own guest_count (set per-package on
 // PackageDetail), and this field is the single "overall event" guest count
@@ -104,6 +130,10 @@ async function handleSubmit() {
   }
   if (!eventDate.value) {
     error.value = 'Please choose an event date.'
+    return
+  }
+  if (eventDate.value < minBookableDate) {
+    error.value = `We can't take bookings for the current week — please choose a date on or after ${minBookableDateLabel}.`
     return
   }
   if (guestCount.value < 1) {
@@ -176,7 +206,11 @@ async function handleSubmit() {
           <div class="checkout__field-row">
             <label class="checkout__field">
               <span class="checkout__label">Event Date</span>
-              <input v-model="eventDate" type="date" :min="today" required />
+              <input v-model="eventDate" type="date" :min="minBookableDate" required />
+              <span class="checkout__hint">
+                Earliest available date is {{ minBookableDateLabel }} — we can't book the current
+                week.
+              </span>
             </label>
 
             <label class="checkout__field">

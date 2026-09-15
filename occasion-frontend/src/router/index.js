@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import PlaceholderView from '../views/PlaceholderView.vue'
+import TermsView from '../views/TermsView.vue'
+import PrivacyView from '../views/PrivacyView.vue'
 import Packages from '../views/Packages.vue'
 import PackageDetail from '../views/PackageDetail.vue'
 import Cart from '../views/Cart.vue'
@@ -72,13 +73,6 @@ const router = createRouter({
       meta: { title: 'About Us | Occasion' },
     },
     {
-      path: '/faq',
-      name: 'faq',
-      component: PlaceholderView,
-      props: { title: 'FAQ' },
-      meta: { title: 'FAQ | Occasion' },
-    },
-    {
       path: '/login',
       name: 'login',
       component: Login,
@@ -99,15 +93,13 @@ const router = createRouter({
     {
       path: '/terms',
       name: 'terms',
-      component: PlaceholderView,
-      props: { title: 'Terms & Conditions' },
+      component: TermsView,
       meta: { title: 'Terms & Conditions | Occasion' },
     },
     {
       path: '/privacy',
       name: 'privacy',
-      component: PlaceholderView,
-      props: { title: 'Privacy Policy' },
+      component: PrivacyView,
       meta: { title: 'Privacy Policy | Occasion' },
     },
     {

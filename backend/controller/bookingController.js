@@ -88,6 +88,29 @@ exports.createBooking = async (req, res) => {
       });
     }
 
+    // Mirrors the frontend rule: no bookings for any date in the current
+    // week — the earliest allowed date is the Monday of next week. Checked
+    // again here so the rule holds even for requests that bypass the
+    // checkout form (e.g. a direct API call).
+    const requestedDate = new Date(`${event_date}T00:00:00`);
+    if (Number.isNaN(requestedDate.getTime())) {
+      await t.rollback();
+      return res.status(400).json({ success: false, error: 'event_date is not a valid date' });
+    }
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // Sun=0 .. Sat=6
+    const daysSinceMonday = (dayOfWeek + 6) % 7; // Mon=0 .. Sun=6
+    const currentWeekMonday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysSinceMonday);
+    const minBookableDate = new Date(currentWeekMonday);
+    minBookableDate.setDate(currentWeekMonday.getDate() + 7);
+    if (requestedDate < minBookableDate) {
+      await t.rollback();
+      return res.status(400).json({
+        success: false,
+        error: `Bookings can't be made for the current week. Please choose a date on or after ${minBookableDate.toISOString().split('T')[0]}.`,
+      });
+    }
+
     if (!Array.isArray(items) || items.length === 0) {
       await t.rollback();
       return res.status(400).json({ success: false, error: 'At least one package item is required' });

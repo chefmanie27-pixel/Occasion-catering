@@ -19,7 +19,6 @@ const quickLinks = [
   { to: '/small-events', label: 'Small Events' },
   { to: '/tours', label: 'Tours' },
   { to: '/about', label: 'About Us' },
-  { to: '/faq', label: 'FAQ' },
 ]
 </script>
 

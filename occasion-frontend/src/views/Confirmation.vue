@@ -4,6 +4,7 @@ import { RouterLink, useRoute } from 'vue-router'
 import { useBookingsStore } from '@/stores/bookings'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/utils/api'
+import { sendBookingConfirmationEmail } from '@/utils/email'
 
 // Post-booking confirmation screen. Booking data comes from the real
 // backend now. When PayFast redirects back here (return_url/cancel_url
@@ -64,8 +65,9 @@ async function pollPaymentStatus() {
 onMounted(async () => {
   await loadBooking()
   if (booking.value?.status === 'pending_payment' && route.query.payment) {
-    pollPaymentStatus()
+    await pollPaymentStatus()
   }
+  await maybeSendConfirmationEmail()
 })
 
 onUnmounted(() => {
@@ -77,13 +79,65 @@ const guestCount = computed(() => booking.value?.guest_count ?? 0)
 
 const formattedDate = computed(() => {
   if (!booking.value?.event_date) return '—'
-  return new Date(`${booking.value.event_date}T00:00:00`).toLocaleDateString('en-ZA', {
+  // event_date comes back from the backend as a full ISO datetime string
+  // (e.g. "2026-09-20T00:00:00.000Z") since it's a Sequelize DATE column,
+  // not a plain "YYYY-MM-DD" string. Grabbing just the date portion before
+  // re-appending "T00:00:00" avoids building a malformed, unparsable
+  // string like "2026-09-20T00:00:00.000ZT00:00:00".
+  const datePart = String(booking.value.event_date).split('T')[0]
+  return new Date(`${datePart}T00:00:00`).toLocaleDateString('en-ZA', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
 })
+
+// EmailJS sends the booking-confirmation email straight from the browser
+// (see utils/email.js). It was previously wired up but never actually
+// called anywhere, so no confirmation emails were going out even with
+// valid EmailJS credentials in .env. We fire it here once a booking
+// reaches "confirmed"/"completed" — which, for a PayFast booking, only
+// happens after loadBooking()/pollPaymentStatus() above have settled.
+//
+// The localStorage guard stops a duplicate email from firing every time
+// the customer reloads or revisits this confirmation page for the same
+// booking; it deliberately doesn't guard against sending for a *different*
+// booking, or re-sending if the previous attempt failed (sent === false).
+const EMAIL_SENT_KEY_PREFIX = 'occasion_confirmation_email_sent_'
+
+function hasSentConfirmationEmail(id) {
+  try {
+    return localStorage.getItem(`${EMAIL_SENT_KEY_PREFIX}${id}`) === '1'
+  } catch {
+    return false
+  }
+}
+
+function markConfirmationEmailSent(id) {
+  try {
+    localStorage.setItem(`${EMAIL_SENT_KEY_PREFIX}${id}`, '1')
+  } catch {
+    // localStorage can be unavailable (private browsing, storage full) —
+    // not fatal, worst case is a duplicate email on a later visit.
+  }
+}
+
+async function maybeSendConfirmationEmail() {
+  if (!booking.value) return
+  if (booking.value.status !== 'confirmed' && booking.value.status !== 'completed') return
+  if (hasSentConfirmationEmail(booking.value.booking_id)) return
+
+  const result = await sendBookingConfirmationEmail({
+    ...booking.value,
+    // Send the human-readable date, not the raw ISO timestamp, so the
+    // email reads naturally.
+    event_date: formattedDate.value,
+  })
+  if (result.sent) {
+    markConfirmationEmailSent(booking.value.booking_id)
+  }
+}
 
 const statusCopy = {
   pending_payment: { label: 'Payment Pending', tone: 'pending' },
@@ -115,7 +169,8 @@ async function copyBookingRef() {
 function downloadCalendarInvite() {
   if (!booking.value?.event_date) return
 
-  const [year, month, day] = booking.value.event_date.split('-').map(Number)
+  const datePart = String(booking.value.event_date).split('T')[0]
+  const [year, month, day] = datePart.split('-').map(Number)
   const [hour = 12, minute = 0] = (booking.value.event_time || '12:00').split(':').map(Number)
 
   const pad = (n) => String(n).padStart(2, '0')
