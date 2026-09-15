@@ -12,6 +12,8 @@ const cart = useCartStore()
 const router = useRouter()
 
 const rebookedId = ref(null)
+const cancellingId = ref(null)
+const cancelError = ref('')
 
 const filter = ref('all')
 const filters = [
@@ -54,8 +56,18 @@ function canCancel(booking) {
   return booking.status === 'confirmed' || booking.status === 'pending_payment'
 }
 
-function handleCancel(bookingId) {
-  bookingsStore.cancelBooking(bookingId)
+async function handleCancel(bookingId) {
+  if (!confirm('Cancel this booking? This can\'t be undone.')) return
+
+  cancelError.value = ''
+  cancellingId.value = bookingId
+  try {
+    await bookingsStore.cancelBooking(bookingId)
+  } catch (error) {
+    cancelError.value = error?.message || 'Something went wrong cancelling this booking. Please try again.'
+  } finally {
+    cancellingId.value = null
+  }
 }
 
 // Re-adds every package from a past booking to the cart, using that
@@ -94,6 +106,8 @@ function handleRebook(booking) {
         {{ f.label }}
       </button>
     </div>
+
+    <p v-if="cancelError" class="history__cancel-error" role="alert">{{ cancelError }}</p>
 
     <div v-if="!filteredBookings.length" class="history__empty">
       <p>{{ bookingsStore.bookings.length ? 'No bookings in this category yet.' : "You haven't made any bookings yet." }}</p>
@@ -147,9 +161,10 @@ function handleRebook(booking) {
             v-if="canCancel(booking)"
             type="button"
             class="history__cancel"
+            :disabled="cancellingId === booking.booking_id"
             @click="handleCancel(booking.booking_id)"
           >
-            Cancel Booking
+            {{ cancellingId === booking.booking_id ? 'Cancelling…' : 'Cancel Booking' }}
           </button>
         </div>
       </li>
@@ -381,9 +396,24 @@ function handleRebook(booking) {
   white-space: nowrap;
 }
 
-.history__cancel:hover {
+.history__cancel:hover:not(:disabled) {
   border-color: #a63d3d;
   background: #fbeaea;
+}
+
+.history__cancel:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+.history__cancel-error {
+  background: #fbeaea;
+  border: 1px solid #a63d3d;
+  border-radius: var(--radius-sm);
+  color: #a63d3d;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
 }
 
 @media (max-width: 640px) {
