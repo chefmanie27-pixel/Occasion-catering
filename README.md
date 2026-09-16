@@ -1,7 +1,7 @@
 A South African e-commerce catering-booking platform serving three customer types through one system:
 
-- **Large events** — weddings, corporate functions, celebrations
-- **Small events** — private dinners, date nights, family gatherings
+- **Large events** - weddings, corporate functions, celebrations
+- **Small events** - private dinners, date nights, family gatherings
 - **Tour-operator food packages**
 
 Customers browse packages, configure event details (date, guest count, menu customisation), register/log in, review and pay via PayFast (sandbox mode), then track booking history from a dashboard.
