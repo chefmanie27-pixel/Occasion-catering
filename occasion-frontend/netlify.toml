@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Vue Router uses browser history mode, so any route that isn't a real file
+# needs to fall back to index.html and let the client-side router handle it.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
